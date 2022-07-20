@@ -3,8 +3,8 @@
     "version": "0.0.1",
     "description": "home service for unsplash background and weather",
     "scripts": {
-        "start": "nodemon server.js",
-        "serve": "NODE_ENV=production node server.js"
+        "start": "nodemon server.mjs",
+        "serve": "NODE_ENV=production node server.mjs"
     },
     "author": "Matias Gumma (https://github.com/matigumma)",
     "license": "MIT",
