@@ -1,0 +1,23 @@
+{
+    "name": "home-service",
+    "version": "0.0.1",
+    "description": "home service for unsplash background and weather",
+    "scripts": {
+        "start": "nodemon server.js",
+        "serve": "NODE_ENV=production node server.js"
+    },
+    "author": "Matias Gumma (https://github.com/matigumma)",
+    "license": "MIT",
+    "dependencies": {
+        "@geckos.io/server": "^2.1.2",
+        "dotenv": "^16.0.1",
+        "express": "^4.18.1",
+        "node-fetch": "^3.2.6",
+        "unsplash-js": "^7.0.15"
+    },
+    "devDependencies": {
+        "five-server": "^0.1.4",
+        "nodemon": "^2.0.12",
+        "npm-run-all": "^4.1.5"
+    }
+}
