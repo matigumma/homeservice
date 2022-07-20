@@ -32,6 +32,6 @@ RUN cd /home/ubuntu && \
 # change the default directory
 WORKDIR "/home/ubuntu/homeservice"
 
-
+EXPOSE 3000
 # CMD /bin/bash
 CMD ["npm", "run", "serve"]
