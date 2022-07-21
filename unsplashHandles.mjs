@@ -18,13 +18,19 @@ const unsplash = createApi({
 
 export async function unsplashHandler() {
     console.log('unsplashHandler running...');
+    // first time server start, get weather data
+    if(PhotoUnsplash === null){
+        return await getUnsplash()
+    }
+
     const nowTimeStamp = new Date().getTime();
-    const timeToRefresh = PhotoUnsplash ? (nowTimeStamp - PhotoUnsplash?.timestamp) > 86400000 : false;
-    if(PhotoUnsplash === null || timeToRefresh){
+    const timeToRefresh = (nowTimeStamp - PhotoUnsplash.timestamp) > 86400000;
+
+    if(timeToRefresh){
         console.log('unsplash request')
-        await getUnsplash();
+        return await getUnsplash();
         // return PhotoUnsplash.list[Math.floor(Math.random()*PhotoUnsplash.list.length)];
-        return PhotoUnsplash.list;
+        // return PhotoUnsplash.list;
     }
     // cached return
     console.log('unsplash cached return')
@@ -34,18 +40,22 @@ export async function unsplashHandler() {
 
 export async function getUnsplash(imageSearch = 'surf') {
     console.log('getUnsplash call...', imageSearch);
-    await unsplash.photos.getRandom({
+    const fotos = await unsplash.photos.getRandom({
         query: imageSearch,
         count: 24,
     })
-    .then(result => {
-        if (result.type === 'success') {
-            PhotoUnsplash = {
-                timestamp: new Date().getTime(),
-                list: result.response
-            }
-        }
-    })
+    .then(result => result.response)
+
+    if(PhotoUnsplash === null){
+        PhotoUnsplash = {};
+    }
+
+    PhotoUnsplash = {
+        timestamp: new Date().getTime(),
+        list: fotos
+    }
+
+    return PhotoUnsplash.list;
 }
 
 export async function weatherhHandles(data) {
