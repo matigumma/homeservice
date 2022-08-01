@@ -33,5 +33,6 @@ RUN cd /home/ubuntu && \
 WORKDIR "/home/ubuntu/homeservice"
 
 EXPOSE 3000
+EXPOSE 20000-20100/udp
 # CMD /bin/bash
 CMD ["npm", "run", "serve"]

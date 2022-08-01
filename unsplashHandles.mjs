@@ -5,9 +5,6 @@ import 'dotenv/config'
 const UNS_API_CLIENTID = process.env.UNS_API_CLIENTID;
 const OWM_API_KEY = process.env.OWM_API_KEY;
 
-console.log(UNS_API_CLIENTID)
-console.log(OWM_API_KEY)
-
 var PhotoUnsplash = null;
 var WeatherOWM = null;
 
@@ -15,6 +12,13 @@ const unsplash = createApi({
     accessKey: UNS_API_CLIENTID,
     fetch: nodeFetch,
 });
+
+export async function status() {
+    return {
+        unsplash: PhotoUnsplash,
+        weather: WeatherOWM,
+    }
+}
 
 export async function unsplashHandler() {
     console.log('unsplashHandler running...');
