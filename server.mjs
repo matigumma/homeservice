@@ -2,7 +2,7 @@ import express from 'express'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import { createServer } from 'http'
-import { unsplashHandler, weatherhHandles } from "./unsplashHandles.mjs";
+import { unsplashHandler, weatherhHandles, status } from "./unsplashHandles.mjs";
 
 var jsonParser = bodyParser.json()
 
@@ -12,12 +12,13 @@ const server = createServer(app)
 app.use(cors())
 
 app.get('/', async (req, res) => {
-  try {
-    const status = await status();
-    return res.status(200).json({ description: "status cached data", status })
-  } catch (error) {
-    return res.status(500).json({ error: error.message })
-  }
+    status()
+    .then(status => {
+      return res.status(200).json({ description: "status cached data", status: status })
+    })
+    .catch(error => {
+      return res.status(500).json({ error: error.message })
+    })
 })
 
 app.post('/weather', jsonParser,  async (req, res) => {
