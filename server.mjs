@@ -3,18 +3,23 @@ import bodyParser from 'body-parser'
 import cors from 'cors'
 import { createServer } from 'http'
 import { unsplashHandler, weatherhHandles, status } from "./unsplashHandles.mjs";
+import 'dotenv/config' 
+
+const CORS_OPTION = process.env.CORS_OPTION || '*';
 
 var jsonParser = bodyParser.json()
 
 const app = express()
 const server = createServer(app)
 
-app.use(cors())
+app.use(cors({
+  origin: CORS_OPTION
+}))
 
-app.get('/', async (req, res) => {
+app.get('/cached', async (req, res) => {
     status()
-    .then(status => {
-      return res.status(200).json({ description: "status cached data", status: status })
+    .then(cached => {
+      return res.status(200).json({ description: "api cached data", cache: cached })
     })
     .catch(error => {
       return res.status(500).json({ error: error.message })

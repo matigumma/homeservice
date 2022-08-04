@@ -31,21 +31,36 @@ export async function unsplashHandler() {
     const timeToRefresh = (nowTimeStamp - PhotoUnsplash.timestamp) > 86400000;
 
     if(timeToRefresh){
-        console.log('unsplash request')
+        console.log('daily unsplash request')
         return await getUnsplash();
-        // return PhotoUnsplash.list[Math.floor(Math.random()*PhotoUnsplash.list.length)];
-        // return PhotoUnsplash.list;
     }
     // cached return
-    console.log('unsplash cached return')
-    // return PhotoUnsplash.list[Math.floor(Math.random()*PhotoUnsplash.list.length)];
-    return PhotoUnsplash.list;
+    console.log('unsplash cached return :)')
+    return PhotoUnsplash.list[Math.floor(Math.random() * PhotoUnsplash.list.length)];
 }
 
-export async function getUnsplash(imageSearch = 'surf') {
-    console.log('getUnsplash call...', imageSearch);
-    const fotos = await unsplash.photos.getRandom({
-        query: imageSearch,
+export async function getUnsplash() {
+    console.log('getUnsplash call...');
+    const fotosSurf = await unsplash.photos.getRandom({
+        query: 'surf',
+        count: 24,
+    })
+    .then(result => result.response)
+    
+    const fotosKitesurf = await unsplash.photos.getRandom({
+        query: 'kitesurf',
+        count: 24,
+    })
+    .then(result => result.response)
+
+    const fotosOcean = await unsplash.photos.getRandom({
+        query: 'ocean',
+        count: 24,
+    })
+    .then(result => result.response)
+
+    const fotosCoast = await unsplash.photos.getRandom({
+        query: 'coast',
         count: 24,
     })
     .then(result => result.response)
@@ -56,10 +71,10 @@ export async function getUnsplash(imageSearch = 'surf') {
 
     PhotoUnsplash = {
         timestamp: new Date().getTime(),
-        list: fotos
+        list: [...fotosSurf, ...fotosKitesurf, ...fotosOcean, ...fotosCoast],
     }
 
-    return PhotoUnsplash.list;
+    return PhotoUnsplash.list[Math.floor(Math.random() * PhotoUnsplash.list.length)];
 }
 
 export async function weatherhHandles(data) {
@@ -67,48 +82,44 @@ export async function weatherhHandles(data) {
     if(WeatherOWM === null){
         return await getOpenWeather(data)
     }
+    const cityName = {
+        normalized: String(data['ciudad']).toLowerCase().trim()
+    };
     // first time for this 'ciudad'
-    if(!WeatherOWM[data['ciudad']]){
+    if(!WeatherOWM[cityName['normalized']]){
         return await getOpenWeather(data)
     }
 
     const nowTimeStamp = new Date().getTime();
-    const wtimeToRefresh = (nowTimeStamp - WeatherOWM[data['ciudad']].timestamp) > 1800000; // cada media hora?
+    const wtimeToRefresh = (nowTimeStamp - WeatherOWM[cityName['normalized']].timestamp) > 600000; // cada 10 min?
     // if this 'ciudad' cached is time to refresh
     if(wtimeToRefresh){
         return await getOpenWeather(data)
     }
     // cached return
-    console.log('weather cached return for: ', data['ciudad']);
-    return WeatherOWM[data['ciudad']];
+    console.log('weather cached return for: ', cityName['normalized']);
+    return WeatherOWM[cityName['normalized']];
 }
 
 export async function getOpenWeather(data) {
     console.log('getOpenWeather call...');
-    // const tmpF = await nodeFetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&appid=${OWM_API_KEY}&units=metric&lang=en`)
-    //     .then(response => response.json())
 
-    // const tmpW = await nodeFetch(`https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lng}&exclude=hourly,minutely,alerts&appid=${OWM_API_KEY}&units=metric&lang=en`)
-    //         .then(responseowm => responseowm.json())
-
-    // WeatherOWM = {
-    //     timestamp: newTimestamp,
-    //     forecast: tmpF,
-    //     onecall: tmpW
-    // }
     const newTimestamp = new Date().getTime();
-    const lang = data.language.split('-')[0];
 
-    const weather = await nodeFetch(`https://api.openweathermap.org/data/2.5/weather?lat=${data.latitude}&lon=${data.longitude}&appid=${OWM_API_KEY}&units=metric&lang=${lang}`)
+    const weather = await nodeFetch(`https://api.openweathermap.org/data/2.5/weather?lat=${data.latitude}&lon=${data.longitude}&appid=${OWM_API_KEY}&units=metric&lang=en`)
             .then(responseowm => responseowm.json())
     
     if(WeatherOWM === null){
         WeatherOWM = {};
     }
 
-    WeatherOWM[data['ciudad']] = {
+    const cityName = {
+        normalized: String(data['ciudad']).toLowerCase().trim()
+    };
+
+    WeatherOWM[cityName['normalized']] = {
         timestamp: newTimestamp,
         weather: weather,
     }
-    return WeatherOWM[data['ciudad']]
+    return WeatherOWM[cityName['normalized']]
 }
