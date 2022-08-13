@@ -4,9 +4,11 @@ import 'dotenv/config'
 
 const UNS_API_CLIENTID = process.env.UNS_API_CLIENTID;
 const OWM_API_KEY = process.env.OWM_API_KEY;
+const STORMGLASS_API_KEY = process.env.STORMGLASS_API_KEY;
 
 var PhotoUnsplash = null;
-var WeatherOWM = null;
+var Weather = null;
+var RequestCounters = null;
 
 const unsplash = createApi({
     accessKey: UNS_API_CLIENTID,
@@ -16,7 +18,8 @@ const unsplash = createApi({
 export async function status() {
     return {
         unsplash: PhotoUnsplash,
-        weather: WeatherOWM,
+        weather: Weather,
+        counters: RequestCounters
     }
 }
 
@@ -77,28 +80,28 @@ export async function getUnsplash() {
     return PhotoUnsplash.list[Math.floor(Math.random() * PhotoUnsplash.list.length)];
 }
 
-export async function weatherhHandles(data) {
+export async function weatherhHandler(data) {
     // first time server start, get weather data
-    if(WeatherOWM === null){
+    if(Weather === null){
         return await getOpenWeather(data)
     }
     const cityName = {
         normalized: String(data['ciudad']).toLowerCase().trim()
     };
     // first time for this 'ciudad'
-    if(!WeatherOWM[cityName['normalized']]){
+    if(!Weather[cityName['normalized']].owm){
         return await getOpenWeather(data)
     }
 
     const nowTimeStamp = new Date().getTime();
-    const wtimeToRefresh = (nowTimeStamp - WeatherOWM[cityName['normalized']].timestamp) > 600000; // cada 10 min?
+    const wtimeToRefresh = (nowTimeStamp - Weather[cityName['normalized']].owm.timestamp) > 600000; // cada 10 min?
     // if this 'ciudad' cached is time to refresh
     if(wtimeToRefresh){
         return await getOpenWeather(data)
     }
     // cached return
     console.log('weather cached return for: ', cityName['normalized']);
-    return WeatherOWM[cityName['normalized']];
+    return Weather[cityName['normalized']];
 }
 
 export async function getOpenWeather(data) {
@@ -108,18 +111,119 @@ export async function getOpenWeather(data) {
 
     const weather = await nodeFetch(`https://api.openweathermap.org/data/2.5/weather?lat=${data.latitude}&lon=${data.longitude}&appid=${OWM_API_KEY}&units=metric&lang=en`)
             .then(responseowm => responseowm.json())
-    
-    if(WeatherOWM === null){
-        WeatherOWM = {};
-    }
+            .catch(error => console.log(error));
 
     const cityName = {
         normalized: String(data['ciudad']).toLowerCase().trim()
     };
 
-    WeatherOWM[cityName['normalized']] = {
+    Weather[cityName['normalized']].owm = {
         timestamp: newTimestamp,
         weather: weather,
     }
-    return WeatherOWM[cityName['normalized']]
+    
+    return Weather[cityName['normalized']]
+}
+
+export async function stormglasshHandler(data) {
+    // first time server start, get weather data
+    if(Weather === null){
+        return await getStormGlass(data)
+    }
+    const cityName = {
+        normalized: String(data['ciudad']).toLowerCase().trim()
+    };
+
+    // first time for this 'ciudad'
+    if(!Weather[cityName['normalized']] && !Weather[cityName['normalized']]?.stormglass && Weather.stormglass?.requestCount < 50){
+        return await getStormGlass(data)
+    }
+
+    const nowTimeStamp = new Date().getTime();
+    const wtimeToRefresh = (nowTimeStamp - Weather[cityName['normalized']].stormglass.timestamp) > 86400000; // cada 1 dia?
+    // if this 'ciudad' cached is time to refresh
+    if(wtimeToRefresh && Weather.stormglass.requestCount < 50){
+        return await getStormGlass(data)
+    }
+    console.log('stormglass cached return for: ', cityName['normalized']);
+    // cached return
+    return Weather[cityName['normalized']].stormglass;
+}
+
+export async function getStormGlass(data) {
+    console.log('getStormGlass call...');
+
+    const newTimestamp = new Date().getTime();
+    
+    const params = "swellDirection,swellHeight,swellPeriod,secondarySwellDirection,secondarySwellHeight,secondarySwellPeriod,waterTemperature,waveDirection,waveHeight,wavePeriod"
+
+    const stormglass = await nodeFetch(`https://api.stormglass.io/v2/weather/point?lat=${data.latitude}&lng=${data.longitude}&params=${params}&source=sg`, {
+        headers: {
+            'Authorization': `${STORMGLASS_API_KEY}`
+        }
+        })
+        .then((response) => response.json())
+        .catch(error => console.log(error));
+    
+    const cityName = {
+        normalized: String(data['ciudad']).toLowerCase().trim()
+    };
+
+    if(Weather === null){
+        Weather = {
+            stormglass: {},
+        };
+    }
+    
+    Weather.stormglass = stormglass.meta;
+
+    Weather[cityName['normalized']] = {
+        stormglass: {
+            timestamp: newTimestamp,
+            stormglass: [...stormglass.hours]
+        }
+    }
+    console.log('stormglass cached meta: ', stormglass.meta);
+
+    return Weather[cityName['normalized']].stormglass
+}
+
+export async function getStormGlassExtremeTides(data) {
+    console.log('getStormGlassExtremeTides call...');
+
+    const stormglassTides = await nodeFetch(`https://api.stormglass.io/v2/tide/extremes/point?lat=${data.latitude}&lng=${data.longitude}`, {
+        headers: {
+            'Authorization': `${STORMGLASS_API_KEY}`
+        }
+        })
+        .then((response) => response.json())
+        .catch(error => console.log(error));
+    
+    const cityName = {
+        normalized: String(data['ciudad']).toLowerCase().trim()
+    };
+
+    Weather[cityName['normalized']] = {
+        stormglassTides: stormglassTides,
+    }
+
+    return Weather[cityName['normalized']].stormglassTides
+}
+
+export function requestCounterHandler(){
+    // increment today request counter
+    const nowTimeStamp = new Date().getTime();
+    const today = new Date(nowTimeStamp).toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
+    if(!RequestCounters) {
+        RequestCounters = {};
+    }
+    if(!RequestCounters[today]) {
+        RequestCounters[today] = 0;
+    }
+    RequestCounters[today]++;
 }
